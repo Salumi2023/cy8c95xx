@@ -6,6 +6,7 @@
 #include <linux/gpio.h>
 #include <linux/interrupt.h>
 #include <linux/irq.h>
+#include <linux/version.h>
 
 #include "cy8c95xx.h"
 
@@ -1023,11 +1024,7 @@ static int cy8c95xx_irq_setup(struct cy8c95xx_chip *chip,
 				client->irq);
 			return ret;
 		}
-		ret =  gpiochip_irqchip_add_domain(&chip->gpio_chip,
-						   &cy8c95xx_irq_chip,
-						   irq_base,
-						   handle_simple_irq,
-						   IRQ_TYPE_NONE);
+	
 		if (ret) {
 			dev_err(&client->dev,
 				"could not connect irqchip to gpiochip\n");
