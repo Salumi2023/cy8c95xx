@@ -986,11 +986,9 @@ static irqreturn_t cy8c95xx_irq_handler(int irq, void *devid)
 		//dev_err(&(chip->client)->dev, "%s, port %d pending: 0x%x    mask: 0x%x\n", "interrupt handler", i, pending[i], chip->irqMaskReg_shadow[i]);
 		do {
 			level = __ffs(pending[i]);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
-            handle_nested_irq(gpio_to_irq(chip->base + level + i * 8));
-#else
+
             handle_nested_irq(irq_find_mapping(NULL, level + i * 8));
-#endif
+
 			pending[i] &= ~(1 << level);
 		} while(pending[i]);
 		//dev_err(&(chip->client)->dev, "%s, port %d pending: 0x%x    mask: 0x%x\n", "interrupt handler", i, pending[i], chip->irqMaskReg_shadow[i]);
