@@ -985,9 +985,11 @@ static irqreturn_t cy8c95xx_irq_handler(int irq, void *devid)
 		//dev_err(&(chip->client)->dev, "%s, port %d pending: 0x%x    mask: 0x%x\n", "interrupt handler", i, pending[i], chip->irqMaskReg_shadow[i]);
 		do {
 			level = __ffs(pending[i]);
-			handle_nested_irq(irq_find_mapping(chip->gpio_chip.irqdomain,
-							level + i*8));
-
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
+            handle_nested_irq(gpio_to_irq(chip->base + level + i * 8));
+#else
+            handle_nested_irq(irq_find_mapping(NULL, level + i * 8));
+#endif
 			pending[i] &= ~(1 << level);
 		} while(pending[i]);
 		//dev_err(&(chip->client)->dev, "%s, port %d pending: 0x%x    mask: 0x%x\n", "interrupt handler", i, pending[i], chip->irqMaskReg_shadow[i]);
@@ -1021,7 +1023,7 @@ static int cy8c95xx_irq_setup(struct cy8c95xx_chip *chip,
 				client->irq);
 			return ret;
 		}
-		ret =  gpiochip_irqchip_add_nested(&chip->gpio_chip,
+		ret =  gpiochip_irqchip_add_domain(&chip->gpio_chip,
 						   &cy8c95xx_irq_chip,
 						   irq_base,
 						   handle_simple_irq,
@@ -1031,9 +1033,7 @@ static int cy8c95xx_irq_setup(struct cy8c95xx_chip *chip,
 				"could not connect irqchip to gpiochip\n");
 			return ret;
 		}
-		gpiochip_set_nested_irqchip(&chip->gpio_chip,
-					    &cy8c95xx_irq_chip,
-					    client->irq);
+		
 	}
 
 	return 0;
@@ -1268,7 +1268,7 @@ out:
 	return ret;
 }
 
-static int cy8c95xx_remove(struct i2c_client *client)
+static void cy8c95xx_remove(struct i2c_client *client)
 {
 	struct cy8c95xx_platform_data *pdata = dev_get_platdata(&client->dev);
 	struct cy8c95xx_chip *chip = i2c_get_clientdata(client);
@@ -1281,13 +1281,11 @@ static int cy8c95xx_remove(struct i2c_client *client)
 		if (ret < 0) {
 			dev_err(&client->dev, "%s failed, %d\n",
 					"teardown", ret);
-			return ret;
+			
 		}
 	}
 	
 	gpiochip_remove(&chip->gpio_chip);
-	
-	return 0;
 	
 }
 
